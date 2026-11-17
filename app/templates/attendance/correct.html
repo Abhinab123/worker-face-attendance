@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, method_badge %}
+{% block title %}Correct attendance{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{{ url_for('attendance.history') }}">Attendance</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Correct record #{{ record.id }}</li>
+</ol></nav>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card"><div class="card-body">
+      <h1 class="h4">Correct attendance</h1>
+      <p class="mb-1"><strong>{{ record.worker.worker_code }}</strong> {{ record.worker.full_name }} · {{ record.business_date }}</p>
+      <p class="small">Current: in {{ record.check_in_at|localtime('%H:%M') }} {{ method_badge(record.check_in_method) }},
+        out {{ record.check_out_at|localtime('%H:%M') or '—' }} {{ method_badge(record.check_out_method) }}</p>
+      <div class="alert alert-warning small">Corrections are marked as <strong>administrator entries</strong>, never as face recognition, and the previous values are kept in the audit history. Check-out must be on the same date (overnight shifts are not supported).</div>
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ field(form.check_in_at) }}
+        {{ field(form.check_out_at, help="Leave empty to clear the check-out.") }}
+        {{ field(form.reason, attrs={"rows": 3, "required": True, "minlength": config.CORRECTION_REASON_MIN_LENGTH}) }}
+        <button class="btn btn-primary" type="submit">Save correction</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('attendance.history') }}">Cancel</a>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><h2 class="h6 mb-0">Audit history for this record</h2></div>
+      {% if history %}
+      <ul class="list-group list-group-flush small">
+      {% for e in history %}
+        <li class="list-group-item">
+          <div><span class="text-body-secondary">{{ e.created_at|localtime }}</span> <code>{{ e.action }}</code>
+            by {{ e.actor_type }}{% if e.actor_admin %} · {{ e.actor_admin.username }}{% endif %}</div>
+          {% if e.reason %}<div>Reason: {{ e.reason }}</div>{% endif %}
+          {% if e.before_data %}<div class="text-body-secondary">Before: in {{ e.before_data.check_in_at_utc }} UTC ({{ e.before_data.check_in_method }}), out {{ e.before_data.check_out_at_utc or '—' }}</div>{% endif %}
+          {% if e.after_data %}<div>After: in {{ e.after_data.check_in_at_utc }} UTC ({{ e.after_data.check_in_method }}), out {{ e.after_data.check_out_at_utc or '—' }}</div>{% endif %}
+        </li>
+      {% endfor %}
+      </ul>
+      {% else %}<div class="card-body empty-state">No history.</div>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

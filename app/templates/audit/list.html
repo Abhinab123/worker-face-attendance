@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager %}
+{% block title %}Audit history{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Audit history</h1>
+<form class="row g-2 mb-3" method="get" aria-label="Filter audit events">
+  <div class="col-12 col-md-3"><label class="visually-hidden" for="action">Action</label>
+    <select class="form-select" id="action" name="action"><option value="">All actions</option>
+      {% for a in actions %}<option {{ 'selected' if request.args.get('action') == a }}>{{ a }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="worker">Worker ID</label>
+    <input class="form-control" id="worker" name="worker" placeholder="Worker ID" value="{{ request.args.get('worker', '') }}"></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="date_from">From</label>
+    <input class="form-control" type="date" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}"></div>
+  <div class="col-6 col-md-2"><label class="visually-hidden" for="date_to">To</label>
+    <input class="form-control" type="date" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}"></div>
+  <div class="col-6 col-md-1 d-grid"><button class="btn btn-outline-secondary" type="submit">Filter</button></div>
+</form>
+{% if page.items %}
+<div class="table-responsive card">
+  <table class="table table-sm table-hover mb-0 align-middle small">
+    <thead><tr><th scope="col">Time ({{ business_timezone }})</th><th scope="col">Action</th><th scope="col">Actor</th><th scope="col">Worker</th><th scope="col">Reason</th><th scope="col">Change</th></tr></thead>
+    <tbody>
+    {% for e in page.items %}
+      <tr>
+        <td class="text-nowrap">{{ e.created_at|localtime }}</td>
+        <td><code>{{ e.action }}</code></td>
+        <td>{{ e.actor_type }}{% if e.actor_admin %} · {{ e.actor_admin.username }}{% endif %}{% if e.kiosk_device %} · {{ e.kiosk_device.name }}{% endif %}</td>
+        <td>{% if e.worker %}<a href="{{ url_for('workers.detail', worker_id=e.worker.id) }}">{{ e.worker.worker_code }}</a>{% endif %}</td>
+        <td>{{ e.reason or '' }}</td>
+        <td class="audit-change">
+          {% if e.before_data %}<div class="text-body-secondary">before: {{ e.before_data|tojson }}</div>{% endif %}
+          {% if e.after_data %}<div>after: {{ e.after_data|tojson }}</div>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="mt-3">{{ pager(page, 'audit_log.list_events') }}</div>
+{% else %}
+<div class="card"><div class="card-body empty-state">No audit events match.</div></div>
+{% endif %}
+{% endblock %}

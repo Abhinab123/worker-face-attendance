@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Kiosk devices{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Kiosk devices</h1>
+{% if new_token %}
+<div class="alert alert-success" role="alert">
+  <p class="mb-1">Activation code for <strong>{{ new_device.name }}</strong>. It is shown <strong>only once</strong>; only a hash is stored.</p>
+  <p class="mb-1"><code class="fs-5 user-select-all" id="new-token">{{ new_token }}</code></p>
+  <p class="mb-0 small">On the kiosk device open <code>{{ url_for('kiosk.activate', _external=True) }}</code> and enter this code.</p>
+</div>
+{% endif %}
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card"><div class="card-body">
+      <h2 class="h6">Add a kiosk device</h2>
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ field(form.name) }}
+        <button class="btn btn-primary" type="submit">Create activation code</button>
+      </form>
+    </div></div>
+    <p class="small text-body-secondary mt-3">You can also run the kiosk from a signed-in administrator session using “Open kiosk”.</p>
+  </div>
+  <div class="col-lg-8">
+    {% if devices %}
+    <div class="table-responsive card">
+      <table class="table table-sm mb-0 align-middle">
+        <thead><tr><th scope="col">Name</th><th scope="col">Created</th><th scope="col">Last seen</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for d in devices %}
+          <tr>
+            <td>{{ d.name }}</td>
+            <td>{{ d.created_at|localtime('%d %b %Y') }}</td>
+            <td>{{ d.last_seen_at|localtime('%d %b %H:%M') or 'never' }}</td>
+            <td>{% if d.revoked_at %}<span class="badge text-bg-secondary">Revoked</span>{% elif d.activated_at %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-info">Awaiting activation</span>{% endif %}</td>
+            <td class="text-end">{% if not d.revoked_at %}
+              <form method="post" action="{{ url_for('kiosk.revoke', device_id=d.id) }}">{{ revoke_form.hidden_tag() }}
+                <button class="btn btn-sm btn-outline-danger" type="submit">Revoke</button></form>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card"><div class="card-body empty-state">No kiosk devices yet.</div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

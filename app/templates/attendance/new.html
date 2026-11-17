@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Manual attendance record{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{{ url_for('attendance.history') }}">Attendance</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Manual record</li>
+</ol></nav>
+<div class="row"><div class="col-lg-6">
+  <div class="card"><div class="card-body">
+    <h1 class="h4">Add a manual attendance record</h1>
+    <p class="small text-body-secondary">Use this when the kiosk could not be used (camera failure, worker declined face enrollment). The record is labelled <strong>Admin entry</strong> and audited.</p>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      {{ field(form.worker_code, attrs={"autocomplete": "off"}) }}
+      {{ field(form.check_in_at, attrs={"max": now_local}) }}
+      {{ field(form.check_out_at, attrs={"max": now_local}) }}
+      {{ field(form.reason, attrs={"rows": 3, "required": True, "minlength": config.CORRECTION_REASON_MIN_LENGTH}) }}
+      <button class="btn btn-primary" type="submit">Create record</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('attendance.history') }}">Cancel</a>
+    </form>
+  </div></div>
+</div></div>
+{% endblock %}

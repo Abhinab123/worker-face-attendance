@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}{{ 'Edit worker' if worker else 'Register worker' }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{{ url_for('workers.list_workers') }}">Workers</a></li>
+  {% if worker %}<li class="breadcrumb-item"><a href="{{ url_for('workers.detail', worker_id=worker.id) }}">{{ worker.worker_code }}</a></li>{% endif %}
+  <li class="breadcrumb-item active" aria-current="page">{{ 'Edit' if worker else 'Register' }}</li>
+</ol></nav>
+<div class="row"><div class="col-lg-7">
+  <div class="card"><div class="card-body">
+    <h1 class="h4 mb-3">{{ 'Edit ' ~ worker.worker_code if worker else 'Register a worker' }}</h1>
+    {% if form.errors %}<div class="alert alert-danger" role="alert">Please correct the highlighted fields.</div>{% endif %}
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      {{ field(form.worker_code, attrs={"autocomplete": "off", "maxlength": 32}) }}
+      {{ field(form.full_name, attrs={"maxlength": 120}) }}
+      <div class="row">
+        <div class="col-md-6">{{ field(form.department, attrs={"maxlength": 80}) }}</div>
+        <div class="col-md-6">{{ field(form.contractor, attrs={"maxlength": 120}) }}</div>
+      </div>
+      {{ field(form.phone, type="tel", attrs={"maxlength": 20, "autocomplete": "off"}) }}
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit">{{ 'Save changes' if worker else 'Register and continue to enrollment' }}</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('workers.detail', worker_id=worker.id) if worker else url_for('workers.list_workers') }}">Cancel</a>
+      </div>
+    </form>
+  </div></div>
+</div></div>
+{% endblock %}

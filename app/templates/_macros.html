@@ -1,0 +1,40 @@
+{% macro field(f, type=None, help=None, attrs={}) %}
+  <div class="mb-3">
+    {{ f.label(class="form-label") }}
+    {% set cls = "form-control" ~ (" is-invalid" if f.errors else "") %}
+    {% if type %}{{ f(class=cls, type=type, **attrs) }}{% else %}{{ f(class=cls, **attrs) }}{% endif %}
+    {% if f.description %}<div class="form-text">{{ f.description }}</div>{% endif %}
+    {% if help %}<div class="form-text">{{ help }}</div>{% endif %}
+    {% for e in f.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+  </div>
+{% endmacro %}
+
+{% macro pager(page, endpoint) %}
+  {% if page.pages > 1 %}
+  <nav aria-label="Pagination">
+    <ul class="pagination pagination-sm">
+      {% set args = request.args.to_dict() %}
+      <li class="page-item {{ 'disabled' if not page.has_prev }}">
+        {% set _ = args.update({'page': page.page - 1}) %}
+        <a class="page-link" href="{{ url_for(endpoint, **args) if page.has_prev else '#' }}">Previous</a>
+      </li>
+      <li class="page-item disabled"><span class="page-link">Page {{ page.page }} of {{ page.pages }} ({{ page.total }})</span></li>
+      <li class="page-item {{ 'disabled' if not page.has_next }}">
+        {% set _ = args.update({'page': page.page + 1}) %}
+        <a class="page-link" href="{{ url_for(endpoint, **args) if page.has_next else '#' }}">Next</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+{% endmacro %}
+
+{% macro method_badge(method) %}
+  {% if method == 'face' %}<span class="badge text-bg-primary">Face (kiosk)</span>
+  {% elif method == 'admin' %}<span class="badge text-bg-warning">Admin entry</span>
+  {% else %}<span class="text-body-secondary">—</span>{% endif %}
+{% endmacro %}
+
+{% macro status_badge(status) %}
+  {% if status == 'active' %}<span class="badge text-bg-success">Active</span>
+  {% else %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}
+{% endmacro %}

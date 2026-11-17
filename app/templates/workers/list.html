@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager, status_badge %}
+{% block title %}Workers{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">Workers</h1>
+  <a class="btn btn-primary" href="{{ url_for('workers.create') }}">Register worker</a>
+</div>
+
+<form class="row g-2 mb-3" method="get" role="search" aria-label="Search workers">
+  <div class="col-12 col-md-4">
+    <label class="visually-hidden" for="q">Search</label>
+    <input class="form-control" id="q" name="q" value="{{ request.args.get('q', '') }}" placeholder="Search ID, name or phone">
+  </div>
+  <div class="col-6 col-md-2">
+    <label class="visually-hidden" for="department">Department</label>
+    <select class="form-select" id="department" name="department">
+      <option value="">All departments</option>
+      {% for d in departments %}<option {{ 'selected' if request.args.get('department') == d }}>{{ d }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-6 col-md-3">
+    <label class="visually-hidden" for="contractor">Contractor</label>
+    <select class="form-select" id="contractor" name="contractor">
+      <option value="">All contractors</option>
+      {% for c in contractors %}<option {{ 'selected' if request.args.get('contractor') == c }}>{{ c }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-6 col-md-2">
+    <label class="visually-hidden" for="status">Status</label>
+    <select class="form-select" id="status" name="status">
+      <option value="">Any status</option>
+      <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
+      <option value="inactive" {{ 'selected' if request.args.get('status') == 'inactive' }}>Inactive</option>
+    </select>
+  </div>
+  <div class="col-6 col-md-1 d-grid"><button class="btn btn-outline-secondary" type="submit">Filter</button></div>
+</form>
+
+{% if page.items %}
+<div class="table-responsive card">
+  <table class="table table-hover mb-0 align-middle">
+    <thead><tr><th scope="col">Worker ID</th><th scope="col">Name</th><th scope="col">Department</th><th scope="col">Contractor</th><th scope="col">Face samples</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    {% for w in page.items %}
+      <tr>
+        <td><a href="{{ url_for('workers.detail', worker_id=w.id) }}" class="fw-semibold">{{ w.worker_code }}</a></td>
+        <td>{{ w.full_name }}</td>
+        <td>{{ w.department }}</td>
+        <td>{{ w.contractor }}</td>
+        <td>{% if enrolled.get(w.id) %}<span class="badge text-bg-info">{{ enrolled[w.id] }} active</span>{% else %}<span class="text-body-secondary small">Not enrolled</span>{% endif %}</td>
+        <td>{{ status_badge(w.status) }}</td>
+        <td class="text-end text-nowrap">
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('workers.edit', worker_id=w.id) }}">Edit</a>
+          {% if w.status == 'active' %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('workers.enroll', worker_id=w.id) }}">Enroll face</a>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="mt-3">{{ pager(page, 'workers.list_workers') }}</div>
+{% else %}
+<div class="card"><div class="card-body empty-state">
+  {% if request.args %}No workers match these filters.{% else %}No workers yet. <a href="{{ url_for('workers.create') }}">Register the first worker</a>.{% endif %}
+</div></div>
+{% endif %}
+{% endblock %}

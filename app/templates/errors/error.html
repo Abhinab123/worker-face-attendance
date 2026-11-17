@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="py-5 text-center">
+  <p class="display-6 text-body-secondary">{{ status }}</p>
+  <h1 class="h3">{{ title }}</h1>
+  <p>{{ message }}</p>
+  <a class="btn btn-primary" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">Go back</a>
+</div>
+{% endblock %}

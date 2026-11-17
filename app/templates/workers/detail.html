@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, method_badge %}
+{% block title %}{{ worker.worker_code }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{{ url_for('workers.list_workers') }}">Workers</a></li>
+  <li class="breadcrumb-item active" aria-current="page">{{ worker.worker_code }}</li>
+</ol></nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ worker.full_name }} <small class="text-body-secondary">{{ worker.worker_code }}</small></h1>
+    {{ status_badge(worker.status) }}
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('workers.edit', worker_id=worker.id) }}">Edit details</a>
+    {% if worker.status == 'active' %}<a class="btn btn-primary" href="{{ url_for('workers.enroll', worker_id=worker.id) }}">Enroll face samples</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('attendance.manual_create', worker=worker.worker_code) }}">Add manual record</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Details</h2>
+      <dl class="row mb-0 small">
+        <dt class="col-5">Department</dt><dd class="col-7">{{ worker.department }}</dd>
+        <dt class="col-5">Contractor</dt><dd class="col-7">{{ worker.contractor }}</dd>
+        <dt class="col-5">Phone</dt><dd class="col-7">{{ worker.phone or '—' }}</dd>
+        <dt class="col-5">Registered</dt><dd class="col-7">{{ worker.created_at|localtime('%d %b %Y %H:%M') }}</dd>
+        {% if worker.deactivated_at %}<dt class="col-5">Deactivated</dt><dd class="col-7">{{ worker.deactivated_at|localtime('%d %b %Y %H:%M') }}</dd>{% endif %}
+        <dt class="col-5">Consent</dt><dd class="col-7">{% if worker.consent_given_at %}Acknowledged {{ worker.consent_given_at|localtime('%d %b %Y') }} (notice {{ worker.consent_notice_version }}){% else %}Not yet recorded{% endif %}</dd>
+      </dl>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Face data</h2>
+      {% set active = enc.get(ENCODING_ACTIVE, {}).get('count', 0) %}
+      {% set pending = enc.get(ENCODING_PENDING, {}).get('count', 0) %}
+      <p class="small mb-2">{{ active }} active sample(s){% if pending %}, <strong class="text-warning-emphasis">{{ pending }} pending review</strong>{% endif %}.
+        {% if not active and not pending %}This worker cannot be recognised until enrolled.{% endif %}</p>
+      <p class="small text-body-secondary">Stored as numeric face encodings only{% if config.STORE_ENROLLMENT_IMAGES %}; enrollment photos are also retained (STORE_ENROLLMENT_IMAGES=true){% else %}; no photos are kept{% endif %}.</p>
+      {% if active or pending %}
+      <details>
+        <summary class="small text-danger">Delete this worker's face data</summary>
+        <form method="post" action="{{ url_for('workers.delete_face_data', worker_id=worker.id) }}" class="mt-2">
+          {{ delete_form.hidden_tag() }}
+          <label class="form-label small" for="del-reason">Reason</label>
+          {{ delete_form.reason(class="form-control form-control-sm mb-2", id="del-reason", rows=2, required=True) }}
+          <div class="form-check mb-2">
+            {{ delete_form.confirm(class="form-check-input", id="del-confirm", required=True) }}
+            <label class="form-check-label small" for="del-confirm">{{ delete_form.confirm.label.text }}</label>
+          </div>
+          <button class="btn btn-sm btn-danger" type="submit">Delete face data</button>
+        </form>
+      </details>
+      {% endif %}
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Status</h2>
+      <form method="post" action="{{ url_for('workers.change_status', worker_id=worker.id) }}">
+        {{ status_form.hidden_tag() }}
+        {% if worker.status == 'active' %}
+          <input type="hidden" name="action" value="deactivate">
+          <label class="form-label small" for="st-reason">Reason (optional)</label>
+          {{ status_form.reason(class="form-control form-control-sm mb-2", id="st-reason", rows=2) }}
+          <button class="btn btn-sm btn-outline-danger" type="submit">Deactivate worker</button>
+          <div class="form-text">Deactivated workers are no longer recognised at the kiosk. Their attendance history is kept.</div>
+        {% else %}
+          <input type="hidden" name="action" value="activate">
+          <button class="btn btn-sm btn-outline-success" type="submit">Reactivate worker</button>
+        {% endif %}
+      </form>
+    </div></div>
+  </div>
+
+  <div class="col-lg-7">
+    {% if flags %}
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Enrollment reviews</h2>
+      <ul class="list-unstyled small mb-0">
+      {% for f in flags %}
+        <li>#{{ f.id }} {{ f.worker.worker_code }} resembles {{ f.matched_worker.worker_code }} (distance {{ '%.3f'|format(f.distance) }}): <strong>{{ f.status }}</strong></li>
+      {% endfor %}
+      </ul>
+    </div></div>
+    {% endif %}
+    <div class="card mb-3">
+      <div class="card-header"><h2 class="h6 mb-0">Recent attendance</h2></div>
+      {% if recent %}
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th scope="col">Date</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Method</th></tr></thead>
+        <tbody>{% for r in recent %}
+          <tr><td><a href="{{ url_for('attendance.correct', record_id=r.id) }}">{{ r.business_date }}</a></td>
+            <td>{{ r.check_in_at|localtime('%H:%M') }}</td><td>{{ r.check_out_at|localtime('%H:%M') or '—' }}</td>
+            <td>{{ method_badge(r.check_in_method) }}{% if r.is_corrected %} <span class="badge text-bg-warning">corrected</span>{% endif %}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+      {% else %}<div class="card-body empty-state">No attendance recorded.</div>{% endif %}
+    </div>
+    <div class="card">
+      <div class="card-header"><h2 class="h6 mb-0">History</h2></div>
+      {% if history %}
+      <ul class="list-group list-group-flush small">
+        {% for e in history %}<li class="list-group-item"><span class="text-body-secondary">{{ e.created_at|localtime('%d %b %H:%M') }}</span> <code>{{ e.action }}</code>{% if e.actor_admin %} by {{ e.actor_admin.username }}{% endif %}{% if e.reason %}: {{ e.reason }}{% endif %}</li>{% endfor %}
+      </ul>
+      {% else %}<div class="card-body empty-state">No history.</div>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Kiosk{% endblock %}
+{% block body_class %}kiosk-body{% endblock %}
+{% block main_class %}container-fluid py-3 kiosk-main{% endblock %}
+{% block content %}
+<div id="kiosk-app" class="kiosk"
+     data-challenge-url="{{ url_for('kiosk.api_challenge') }}"
+     data-verify-url="{{ url_for('kiosk.api_verify') }}">
+  <header class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+      <h1 class="h4 mb-0">Attendance kiosk</h1>
+      <div class="small text-body-secondary">{% if device %}Device: {{ device.name }}{% else %}Supervised by administrator {{ current_user.username }}{% endif %} · <span id="clock" aria-live="off"></span></div>
+    </div>
+    <form method="post" action="{{ url_for('kiosk.exit_kiosk') }}">
+      {{ exit_form.hidden_tag() }}
+      <button class="btn btn-sm btn-outline-secondary" type="submit">{{ 'Exit kiosk mode' if device else 'Back to dashboard' }}</button>
+    </form>
+  </header>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="camera-frame camera-frame-lg" id="camera-frame">
+        <video id="video" playsinline muted aria-label="Camera preview"></video>
+        <div class="camera-overlay" id="camera-overlay">
+          <div class="text-center p-3">
+            <p class="mb-2">Camera is off. Allow camera access when the browser asks.</p>
+            <button class="btn btn-light btn-lg" id="start-camera" type="button">Start camera</button>
+          </div>
+        </div>
+        <div class="challenge-banner d-none" id="challenge-banner" role="status" aria-live="assertive">
+          <div class="challenge-text" id="challenge-text"></div>
+          <div class="progress mt-2" role="progressbar" aria-label="Capture progress" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" id="capture-progress"></div>
+          </div>
+        </div>
+      </div>
+      <div id="camera-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
+    </div>
+    <div class="col-lg-5">
+      <div class="d-grid gap-3 mb-3">
+        <button class="btn btn-success btn-xl" id="btn-check-in" type="button" data-mode="check_in" disabled>Check in</button>
+        <button class="btn btn-primary btn-xl" id="btn-check-out" type="button" data-mode="check_out" disabled>Check out</button>
+      </div>
+      <div id="result" class="result-card result-idle" role="status" aria-live="polite">
+        <div class="result-title" id="result-title">Ready</div>
+        <div id="result-message">Start the camera, then press Check in or Check out.</div>
+        <ul id="result-hints" class="mb-0 mt-2 small"></ul>
+      </div>
+      {% if liveness_required %}
+      <p class="small text-body-secondary mt-3">You will be asked to blink or turn your head. This is a basic check against photos; it does not make spoofing impossible.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<div id="kiosk-config" hidden data-frame-count="{{ frame_count }}" data-frame-interval="{{ frame_interval }}"></div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kiosk.js') }}"></script>
+{% endblock %}

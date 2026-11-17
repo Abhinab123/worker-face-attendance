@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <div>
+    <h1 class="h3 mb-0">Dashboard</h1>
+    <p class="text-body-secondary mb-0">{{ today.strftime('%A, %d %B %Y') }} · times in {{ business_timezone }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-primary" href="{{ url_for('workers.create') }}">Register worker</a>
+    <a class="btn btn-outline-primary" href="{{ url_for('kiosk.kiosk_page') }}">Open kiosk</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% set tiles = [
+    ("Active workers", stats.active_workers, url_for('workers.list_workers', status='active')),
+    ("Enrolled (face)", stats.enrolled_workers, url_for('workers.list_workers', status='active')),
+    ("Checked in today", stats.checked_in_today, url_for('attendance.history', date_from=today.isoformat(), date_to=today.isoformat())),
+    ("Checked out today", stats.checked_out_today, url_for('attendance.history', date_from=today.isoformat(), date_to=today.isoformat())),
+    ("Still on site", stats.on_site, url_for('attendance.history', date_from=today.isoformat(), date_to=today.isoformat())),
+  ] %}
+  {% for label, value, href in tiles %}
+  <div class="col-6 col-md-4 col-xl">
+    <a class="card stat-card h-100 text-decoration-none" href="{{ href }}">
+      <div class="card-body">
+        <div class="stat-value">{{ value }}</div>
+        <div class="stat-label">{{ label }}</div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+{% if stats.pending_reviews or stats.missing_checkouts %}
+<div class="row g-3 mb-4">
+  {% if stats.pending_reviews %}
+  <div class="col-md-6"><div class="alert alert-warning mb-0">
+    <strong>{{ stats.pending_reviews }}</strong> enrollment review(s) pending: samples that resemble another worker.
+    <a class="alert-link" href="{{ url_for('reviews.list_flags') }}">Review now</a>
+  </div></div>
+  {% endif %}
+  {% if stats.missing_checkouts %}
+  <div class="col-md-6"><div class="alert alert-info mb-0">
+    <strong>{{ stats.missing_checkouts }}</strong> record(s) from earlier days have no check-out and need an administrator correction.
+    <a class="alert-link" href="{{ url_for('attendance.history') }}">View attendance</a>
+  </div></div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="h6 mb-0">Recent activity</h2>
+    <a class="small" href="{{ url_for('audit_log.list_events') }}">Full audit history</a>
+  </div>
+  {% if recent %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead><tr><th scope="col">Time</th><th scope="col">Event</th><th scope="col">Worker</th><th scope="col">By</th></tr></thead>
+      <tbody>
+      {% for e in recent %}
+        <tr>
+          <td class="text-nowrap">{{ e.created_at|localtime('%d %b %H:%M:%S') }}</td>
+          <td><code>{{ e.action }}</code></td>
+          <td>{% if e.worker %}<a href="{{ url_for('workers.detail', worker_id=e.worker.id) }}">{{ e.worker.worker_code }}</a> {{ e.worker.full_name }}{% endif %}</td>
+          <td>{{ e.actor_type }}{% if e.actor_admin %} · {{ e.actor_admin.username }}{% endif %}{% if e.kiosk_device %} · {{ e.kiosk_device.name }}{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body empty-state">No activity yet. Register a worker to get started.</div>
+  {% endif %}
+</div>
+<p class="small text-body-secondary mt-3">Absence is not shown: there is no roster or shift schedule, so the system only reports attendance that was recorded.</p>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Enroll {{ worker.worker_code }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{{ url_for('workers.list_workers') }}">Workers</a></li>
+  <li class="breadcrumb-item"><a href="{{ url_for('workers.detail', worker_id=worker.id) }}">{{ worker.worker_code }}</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Face enrollment</li>
+</ol></nav>
+<h1 class="h3">Face enrollment: {{ worker.full_name }} <small class="text-body-secondary">{{ worker.worker_code }}</small></h1>
+{% if active_samples %}<p class="text-body-secondary">{{ active_samples }} active sample(s) already stored. New samples are added to them.</p>{% endif %}
+
+{% if worker.status != 'active' %}
+<div class="alert alert-warning">This worker is inactive. Reactivate them before enrolling.</div>
+{% else %}
+<div id="enroll-app" class="row g-4"
+     data-submit-url="{{ url_for('workers.enroll_submit', worker_id=worker.id) }}"
+     data-detail-url="{{ url_for('workers.detail', worker_id=worker.id) }}"
+     data-min="{{ config.ENROLL_MIN_SAMPLES }}" data-max="{{ config.ENROLL_MAX_SAMPLES }}"
+     data-consent-recorded="{{ 'true' if worker.consent_given_at else 'false' }}">
+  <div class="col-lg-7">
+    <div class="camera-frame" id="camera-frame">
+      <video id="video" playsinline muted aria-label="Camera preview"></video>
+      <div class="camera-overlay" id="camera-overlay">
+        <div class="text-center p-3">
+          <p class="mb-2">The camera is off.</p>
+          <button class="btn btn-light" id="start-camera" type="button">Start camera</button>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <button class="btn btn-primary" id="capture" type="button" disabled>Capture sample</button>
+      <button class="btn btn-outline-secondary" id="clear" type="button" disabled>Clear samples</button>
+      <span class="align-self-center small text-body-secondary" id="sample-count" aria-live="polite">0 samples</span>
+    </div>
+    <div id="camera-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
+    <div class="thumbs mt-3" id="thumbs" aria-label="Captured samples"></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body small">
+      <h2 class="h6">Capture tips</h2>
+      <ul class="mb-0">
+        <li>One person only in the frame. Remove caps, sunglasses and masks.</li>
+        <li>Even light on the face; no bright window behind the worker.</li>
+        <li>Take {{ config.ENROLL_MIN_SAMPLES }}–{{ config.ENROLL_MAX_SAMPLES }} samples: straight on, slightly left, slightly right, slightly up/down.</li>
+        <li>Fill roughly a third of the frame with the face; hold still for each capture.</li>
+      </ul>
+    </div></div>
+
+    <div class="card mb-3 border-primary"><div class="card-body small">
+      <h2 class="h6">Biometric enrollment notice</h2>
+      <p>Read this to the worker in a language they understand before capturing:</p>
+      <ul>
+        <li>Face images are used only to create numeric face templates for attendance at this site.</li>
+        <li>{% if config.STORE_ENROLLMENT_IMAGES %}Enrollment photos are retained by this deployment.{% else %}Photos are not kept; only the numeric templates are stored.{% endif %}</li>
+        <li>Templates are deleted on request, and automatically {{ config.BIOMETRIC_RETENTION_DAYS }} days after the worker is deactivated when the retention job runs.</li>
+        <li>Face recognition can make mistakes. Workers can ask the supervisor for a manual attendance entry at any time.</li>
+        <li>Enrollment is voluntary; refusing must not affect wages or work allocation.</li>
+      </ul>
+      {% if worker.consent_given_at %}
+        <p class="mb-0 text-success">Consent acknowledged on {{ worker.consent_given_at|localtime('%d %b %Y') }}.</p>
+      {% else %}
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="consent">
+          <label class="form-check-label" for="consent">The worker has heard this notice and agrees to face enrollment.</label>
+        </div>
+      {% endif %}
+    </div></div>
+
+    <button class="btn btn-success w-100" id="submit" type="button" disabled>
+      <span class="spinner-border spinner-border-sm d-none" id="submit-spinner" aria-hidden="true"></span>
+      <span id="submit-label">Save enrollment</span>
+    </button>
+    <div id="result" class="mt-3" aria-live="polite"></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+<script src="{{ url_for('static', filename='js/enroll.js') }}"></script>
+{% endblock %}
