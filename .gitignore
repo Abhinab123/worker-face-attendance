@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Flask instance folder: holds biometric storage and local state. Never commit.
+instance/
+
+# Biometric data, exports and database dumps
+biometric/
+face_samples/
+*.npy
+*.npz
+exports/
+*.csv
+*.sql
+*.sql.gz
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+
+# Images captured outside the app (keep vendored/static assets only)
+captures/
+*.jpg
+*.jpeg
+!app/static/**/*.jpg
+
+# Logs and tooling
+*.log
+.coverage
+htmlcov/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
